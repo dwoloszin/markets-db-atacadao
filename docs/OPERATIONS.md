@@ -73,9 +73,17 @@ What happens with N stores:
 * `mark-stale` works per store: a row is flipped only when its own store's latest run
   did not refresh it, so stores scraped on different days do not disturb each other;
 * runtime grows linearly for the per-store markets (Atacadão ~6-9 min per store,
-  Carrefour ~12, Higas ~25). With 4 CEPs the daily cycle
+  Carrefour ~12, Higas ~30 at the safe 4 s pace). With 4 CEPs the daily cycle
   is still well inside the 4-hour schedule slot for every market except Higas, whose
-  API pacing makes it ~100 min - give it its own slot or fewer CEPs.
+  API pacing makes it ~120 min - give it its own slot or fewer CEPs.
+* **Higas rate-limit is IP-wide.** `api.ibecom.com.br` throttles (429) after a long
+  sustained run and then bans the IP for hours. When that happens mid-run the scraper
+  raises `RateLimited`, the CEP loop stops (retrying the other CEPs on the same IP only
+  extends the ban) and the run stays **green** as long as at least one store was saved.
+  The stores not reached refresh on the next scheduled run, which gets a fresh GitHub
+  runner IP. Only a run that saved nothing goes red.
+* With several CEPs the starting CEP is rotated every 4-hour slot, so a market whose run
+  gets cut short still refreshes every store over the day.
 * `python -m db.db_manager stores <market>` lists the stores present;
   `drop-store <market> <store_id>` removes one.
 * **Which stores exist?** `python -m tools.list_stores` writes `exports/stores_<market>.csv`
