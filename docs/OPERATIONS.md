@@ -11,7 +11,7 @@ python deploy/deploy.py --force          # force-push code
 ```
 
 Each market repo receives the code, a `scrape.yml` with the cron from
-`config.STORES[key]["cron"]` (every 4 hours; the 16 markets start 15 minutes
+`config.STORES[key]["cron"]` (every 4 hours; the markets start 15 minutes
 apart so no two run at the same time - a full cycle is 6 runs/day per market) and the secrets
 `STORE_KEY`, `DATABASE_URL_<MARKET>` and optionally `SCRAPE_ZIP_CODE`. The
 workflow runs `python -m main --stores <key> --log --post` (scrape + inline
@@ -48,7 +48,7 @@ keeps what was selected for every `store_id`.
 
 ## Several stores per market (several CEPs)
 
-Prices depend on the store for **Atacadão, Carrefour and Higas** only
+Prices depend on the store for **Atacadão, Carrefour, Higas and Coop** only
 (`config.STORES[..]["per_store"] = True`; measured 2026-09-09: 4-32% of prices differ
 between Atacadão sellers, 13-42% between Carrefour stores). Give a comma-separated CEP
 list and each of those markets is scraped once per CEP, each store under its own
@@ -84,6 +84,9 @@ What happens with N stores:
   runner IP. Only a run that saved nothing goes red.
 * With several CEPs the starting CEP is rotated every 4-hour slot, so a market whose run
   gets cut short still refreshes every store over the day.
+* Two CEPs that resolve to the same store are scraped once: the per-store scrapers call
+  `db.begin_store(store_id)` after resolving the store and skip the duplicate
+  (`duplicate_store` in the result, not counted as a failure).
 * `python -m db.db_manager stores <market>` lists the stores present;
   `drop-store <market> <store_id>` removes one.
 * **Which stores exist?** `python -m tools.list_stores` writes `exports/stores_<market>.csv`
